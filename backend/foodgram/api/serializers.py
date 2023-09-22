@@ -55,9 +55,9 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 class RecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
-    # ingredients = RecipeIngredientSerializer(many=True, source='recipe_ingredients')
+    ingredients = RecipeIngredientSerializer(many=True, source='recipe_ingredients')
     # ingredients = serializers.SerializerMethodField()
-    ingredients = IngredientSerializer(many=True)
+    # ingredients = IngredientSerializer(many=True)
 
     class Meta:
         model = Recipe
@@ -96,24 +96,20 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         instance = super().create(validated_data)
 
         for ingredient_data in ingredients:
-            # ingredient_data.recipe = instance
-            print("1<><><>",instance.id)
-            # ingredient_data.save()
             RecipeIngredient(
                 recipe_id=instance.id,
                 ingredient_id=ingredient_data['ingredient'].id,
                 amount=ingredient_data['amount']
             ).save()
-
+            print("1<><><>")
         return instance
 
     def to_representation(self, instance):
-        if isinstance(self, Recipe):
-            serializer = RecipeSerializer(instance)
-        if isinstance(self, RecipeIngredient):
-            serializer = RecipeIngredientSerializer(instance)
-        if isinstance(self, Tag):
-            serializer = TagSerializer(instance)
-
-        return super().to_representation(instance)
+        context = {'request': self.context.get('request')}
+        print("1<><><>", context)
+        serializer = RecipeSerializer(
+            instance=instance,
+            context=context
+        )
+        return serializer.data
 

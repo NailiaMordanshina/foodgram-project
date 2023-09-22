@@ -44,34 +44,30 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        # fields = ('id', 'name', 'color', 'slug', 'recipes')
+        fields = ('id', 'name', 'color', 'slug')
+
+
+class IngredientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
         fields = '__all__'
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-
-    # tags = TagSerializer(many=True)
-    # tags = serializers.StringRelatedField(many=True, read_only=True)
-    ingredients = RecipeIngredientSerializer(many=True, source='recipe_ingredients')
+    tags = TagSerializer(many=True)
+    # ingredients = RecipeIngredientSerializer(many=True, source='recipe_ingredients')
+    # ingredients = serializers.SerializerMethodField()
+    ingredients = IngredientSerializer(many=True)
 
     class Meta:
-
-        fields = ('id', 'tags', 'ingredients', 'name', 'text', 'cooking_time')
         model = Recipe
+        fields = ('id', 'tags', 'ingredients', 'name', 'text', 'cooking_time')
 
-    def create(self, validated_data):
-        # Уберем список достижений из словаря validated_data и сохраним его
-        # tags = self.initial_data.pop('tags')
-        tags_data = validated_data.pop('tags')
-        # print(tags_data);
-        recipe = Recipe.objects.create(**validated_data)
-        # for tag_id in tags_data:
-        #     tag = Tag.objects.get(pk=tag_id)
-        #     recipe.tags.add(tag_id)
-
-        recipe.tags.set(tags_data)
-
-        return recipe
+    def get_ingredients(self, instance):
+        return RecipeIngredientSerializer(
+            instance.recipe_ingredients.all(),
+            many=True
+        ).data
 
 
 class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
@@ -85,19 +81,39 @@ class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
         fields = ('id', 'amount')
 
 
-# class RecipeCreateSerializer(serializers.ModelSerializer):
-#     # author = UserSerializer(read_only=True)
-#     tags = serializers.PrimaryKeyRelatedField(
-#         queryset=Tag.objects.all(), many=True)
-#     ingredients = RecipeIngredientCreateSerializer(many=True)
-#
-#     class Meta:
-#         model = Recipe
-#         fields = ('id', 'tags', 'ingredients', 'name', 'text', 'cooking_time')
-#
-#     def create(self, validated_data):
-#         ingredients = validated_data.pop('ingredients')
-#         tags = validated_data.pop('tags')
-#         recipe = Recipe.objects.create(**validated_data)
-#         return self.validated_data
+class RecipeCreateSerializer(serializers.ModelSerializer):
+    # tags = serializers.PrimaryKeyRelatedField(
+    #     queryset=Tag.objects.all(), many=True)
+    ingredients = RecipeIngredientCreateSerializer(many=True)
+
+    class Meta:
+        model = Recipe
+        fields = ('id', 'tags', 'ingredients', 'name', 'text', 'cooking_time')
+
+    def create(self, validated_data):
+        print('1>>>>', validated_data)
+        ingredients = validated_data.pop('ingredients')
+        instance = super().create(validated_data)
+
+        for ingredient_data in ingredients:
+            # ingredient_data.recipe = instance
+            print("1<><><>",instance.id)
+            # ingredient_data.save()
+            RecipeIngredient(
+                recipe_id=instance.id,
+                ingredient_id=ingredient_data['ingredient'].id,
+                amount=ingredient_data['amount']
+            ).save()
+
+        return instance
+
+    def to_representation(self, instance):
+        if isinstance(self, Recipe):
+            serializer = RecipeSerializer(instance)
+        if isinstance(self, RecipeIngredient):
+            serializer = RecipeIngredientSerializer(instance)
+        if isinstance(self, Tag):
+            serializer = TagSerializer(instance)
+
+        return super().to_representation(instance)
 

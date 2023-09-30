@@ -3,6 +3,7 @@ from colorfield.fields import ColorField
 
 from django.db import models
 
+
 from users.models import User
 
 
@@ -145,9 +146,96 @@ class RecipeIngredient(models.Model):
         return f'{self.ingredient} {self.recipe}'
 
 
-# class RecipeTag(models.Model):
-#     tags = models.ForeignKey(Tag, on_delete=models.CASCADE)
-#     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-#
-#     def __str__(self):
-#         return f'{self.tags} {self.recipe}'
+class Favorites(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='favorites_user',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='favorites_recipe',
+        verbose_name='Избранный рецепт'
+    )
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранные'
+        ordering = ['user']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'recipe'],
+                                    name='unique_favorites')
+        ]
+
+    def __str__(self):
+        return f'{self.user} - {self.recipe}'
+
+
+class Subscription(models.Model):
+    follower = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='Пользователь',
+        help_text='Пользователь',
+        default=None
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='followers',
+        verbose_name='Избранный автор',
+        help_text='Избранный автор',
+    )
+    # date_added = DateTimeField(
+    #     verbose_name="Дата создания подписки",
+    #     auto_now_add=True,
+    #     editable=False,
+    # )
+
+    class Meta:
+        verbose_name = 'Избранный автор'
+        verbose_name_plural = 'Избранные авторы'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['follower', 'author'], name='unique_subscribe'
+            ),
+            # models.CheckConstraint(
+            #     name='prevent_self_follow',
+            #     check=~models.Q(user=models.F('author')),
+            # ),
+        ]
+
+    def __str__(self):
+        return f'{self.user} {self.author}'
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_list',
+        verbose_name='Пользователь',
+        help_text='Пользователь',
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_cart',
+        verbose_name='Рецепт в списке покупок',
+        help_text='Рецепт в списке покупок',
+    )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'], name='unique_shopping_cart'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} {self.recipe}'

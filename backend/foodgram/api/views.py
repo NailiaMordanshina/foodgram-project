@@ -7,9 +7,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 
-from recipes.models import Tag, Recipe, Ingredient
+from recipes.models import Tag, Recipe, Ingredient, Subscription
 from api.serializers import UserSerializer, TagSerializer, RecipeSerializer,\
-    IngredientSerializer, RecipeCreateSerializer
+    IngredientSerializer, RecipeCreateSerializer, SubscriptionSerializer, SubscribeUserSerializer
 
 from users.models import User
 
@@ -68,11 +68,6 @@ class RecipeViewSet(ModelViewSet):
 
         return res
 
-    # def get(self, request, *args, **kwargs):
-    #     instance = self.get_object()
-    #     serializer = self.get_serializer(instance)
-    #     return Response(serializer.data)
-
     def get_queryset(self):
         recipes = Recipe.objects.prefetch_related(
             'recipe_ingredients__ingredient', 'tags'
@@ -82,10 +77,81 @@ class RecipeViewSet(ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'create':
             return RecipeCreateSerializer
-        return RecipeSerializer
+        return RecipeCreateSerializer
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
 
+# @api_view(['POST'])
+# @permission_classes([IsAuthenticated])
+def subscribe_to_author(request):
+    print("qq")
+    author_username = request.data.get('author_username')
+    author = get_object_or_404(User, username=author_username)
+
+    # Проверяем, не подписан ли уже пользователь
+    subscription_exists = Subscription.objects.filter(follower=request.user, author=author).exists()
+
+    if subscription_exists:
+        return Response({'detail': 'Вы уже подписаны на этого пользователя.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    subscription = Subscription(follower=request.user, author=author)
+    subscription.save()
+
+    return Response({'detail': 'Подписка успешно создана.'}, status=status.HTTP_201_CREATED)
+
+class UserSubscriptionViewSet(ModelViewSet):
+    print('?????')
+    serializer_class = SubscribeUserSerializer
+    print('[][][]')
+
+    def post(self, request, user_id):
+        print('111[][][]', request, user_id)
+        author = get_object_or_404(User, id=user_id)
+        serializer = SubscribeUserSerializer(
+            data={'user': request.user.id, 'author': author.id}, context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, user_id):
+        author = get_object_or_404(User, id=user_id)
+        if not Subscription.objects.filter(user=request.user, author=author).exists():
+            return Response(
+                {'errors': 'Вы не подписаны на этого пользователя'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        Subscription.objects.get(user=request.user.id, author=user_id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # @action(methods=['get'], permission_classes=[IsAuthenticated],
+    #         # url_path='subscription',
+    #         detail=False)
+    # def subscription(self, request):
+    #     user = request.user
+    #     queryset = User.objects.filter(author__user=user)
+    #     pages = self.paginate_queryset(queryset)
+    #     serializer = SubscriptionSerializer(pages, many=True, context={'request': request})
+    #     return self.get_paginated_response(serializer.data)
+
+# class SubscriptionViewSet(ModelViewSet):
+#     # http_method_names = ['get', 'post']
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = SubscriptionSerializer
+#     # filter_backends = [filters.SearchFilter]
+#     search_fields = ['user__username', 'author__username']
+#
+#     def get_queryset(self):
+#         print("!!")
+#         user = get_object_or_404(
+#             User, username=self.request.user.username
+#         )
+#         return user.author
+#
+#     def perform_create(self, serializer):
+#         print("!!")
+#         serializer.save(user=self.request.user, author=self.request.user)
 

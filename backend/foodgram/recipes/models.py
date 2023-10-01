@@ -1,6 +1,6 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from colorfield.fields import ColorField
-
+from django.utils import timezone
 from django.db import models
 
 from users.models import User
@@ -93,9 +93,9 @@ class Recipe(models.Model):
         default=1,
         verbose_name='Время приготовления',
     )
-    # pub_date = models.DateTimeField(
-    #     'Дата публикации', auto_now_add=True
-    # )
+    pub_date = models.DateTimeField(
+        'Дата публикации', auto_now_add=True
+    )
 
     class Meta:
         verbose_name = 'Рецепт'

@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, viewsets
 from django.core.exceptions import ValidationError
-
+from rest_framework import serializers
 
 from recipes.models import Tag, Recipe, Ingredient, Subscription
 from api.serializers import UserSerializer, TagSerializer, RecipeSerializer,\
@@ -42,33 +42,27 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.save(role=user.role, partial=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=['post', 'delete'],
-            permission_classes=[IsAuthenticated],
-            detail=True)
+    @action(detail=True,methods=['POST', 'DELETE'],
+            permission_classes=[IsAuthenticated])
     def subscribe(self, request, **kwargs):
         """Подписаться на пользователя."""
         user = request.user
         # print('1????', kwargs, request.user)
         author_id = kwargs['pk']
         # print('2????', author_id)
-
         author_obj = get_object_or_404(User, id=author_id)
-
-        serializer = SubscriptionSerializer(instance=author_obj,
+        serializer = UserSubscriptionSerializer(instance=author_obj,
                                                 data=request.data,
                                                 context={'request': request})
         print('3????', serializer)
-
         if request.method == 'POST':
             # print('4????')
-
             if request.user == author_obj:
-                raise ValidationError('Нельзя подписаться на самого себя.')
+                raise serializers.ValidationError('Нельзя подписаться на самого себя.')
             if Subscription.objects.filter(author=author_obj, user=user).exists():
-                raise ValidationError('Вы уже подписаны.')
-
+                raise serializers.ValidationError('Вы уже подписаны.')
             # if serializer.is_valid():
-            print('5????')
+
             Subscription.objects.create(user=user, author_id=author_id)
             print("<>", serializer.is_valid(), serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -77,25 +71,13 @@ class UserViewSet(viewsets.ModelViewSet):
         subscription.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    # def delete_subscribe(self, request, **kwargs):
-    #     """Отписать на пользователя."""
-    #     user = request.user
-    #     author_id = kwargs['id']
-    #
-    #     if get_object_or_404(
-    #             Subscriptions,
-    #             user=user,
-    #             author_id=author_id
-    #     ).delete():
-    #         return Response(status=status.HTTP_204_NO_CONTENT)
-    #
-    #     return Response(status=status.HTTP_400_BAD_REQUEST)
-
     @action(methods=['get'], permission_classes=[IsAuthenticated], detail=False)
-    def subscription(self, request):
-        user = request.user
-        queryset = User.objects.filter(author__user=user)
-        pages = self.paginate_queryset(queryset)
+    def subscriptions(self, request):
+        print('5????')
+        # user = request.user
+        # queryset = User.objects.filter(author__user=user)
+        subscription_data = User.objects.filter(followers__user=request.user)
+        pages = self.paginate_queryset(subscription_data)
         serializer = UserSubscriptionSerializer(pages, many=True, context={'request': request})
         return self.get_paginated_response(serializer.data)
 
@@ -162,58 +144,6 @@ class RecipeViewSet(ModelViewSet):
 #     return Response({'detail': 'Подписка успешно создана.'}, status=status.HTTP_201_CREATED)
 
 
-# class ListSubscriptionViewSet(generics.ListAPIView):
-#     """Вывод списка подписчиков пользователя"""
-#     permission_classes = [permissions.IsAuthenticated]
-#     serializer_class = ListSubscriptionSerializer
-#
-#     def get_queryset(self):
-#         return Subscription.objects.filter(user_id=self.request.user.id)
-    # def post(self, request, user_id):
-    #     print('111[][][]', request, user_id)
-    #     author = get_object_or_404(User, id=user_id)
-    #     serializer = SubscribeUserSerializer(
-    #         data={'user': request.user.id, 'author': author.id}, context={'request': request}
-    #     )
-    #     serializer.is_valid(raise_exception=True)
-    #     serializer.save()
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED)
-    #
-    # def delete(self, request, user_id):
-    #     author = get_object_or_404(User, id=user_id)
-    #     if not Subscription.objects.filter(user=request.user, author=author).exists():
-    #         return Response(
-    #             {'errors': 'Вы не подписаны на этого пользователя'},
-    #             status=status.HTTP_400_BAD_REQUEST
-    #         )
-    #
-    #     Subscription.objects.get(user=request.user.id, author=user_id).delete()
-    #     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-
-# class AddSubscriptionView(views.APIView):
-#     print("111")
-#
-#     """Добавление в подписчики"""
-#     permission_classes = [permissions.IsAuthenticated]
-#
-#     def post(self, request, id):
-#         print("222")
-#
-#         user = User.objects.filter(id=id)
-#         if user.exists():
-#             Subscription.objects.create(author=request.user, user=user)
-#             return response.Response(status=201)
-#         return response.Response(status=404)
-#
-#     def delete(self, request, id):
-#         print("333")
-#
-#         try:
-#             sub = Subscription.objects.get(author=request.user, user_id=id)
-#         except Subscription.DoesNotExist:
-#             return response.Response(status=404)
-#         sub.delete()
-#         return response.Response(status=204)
 

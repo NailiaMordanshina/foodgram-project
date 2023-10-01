@@ -1,5 +1,6 @@
 from djoser.serializers import UserSerializer
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
+# from flask import request
 
 from rest_framework import serializers
 from users.models import User
@@ -43,7 +44,7 @@ class RecipePartialSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = "id", "name", "image", "cooking_time"
+        fields = "id", "name", "cooking_time"
         read_only_fields = ("__all__",)
 
 
@@ -154,15 +155,31 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     is_subcribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
+    email = serializers.ReadOnlyField()
+    id = serializers.ReadOnlyField()
+    username = serializers.ReadOnlyField()
+    first_name = serializers.ReadOnlyField()
+    last_name = serializers.ReadOnlyField()
 
     class Meta:
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subcribed', 'recipes', 'recipes_count')
 
+    def validate_author(self, value):
+        if self.context['request'].user == value:
+            raise serializers.ValidationError('Нельзя подписаться на самого себя')
+        return value
+
+    def get_is_subcribed(self, obj):
+        if (self.context.get('request')
+                and self.context['request'].user.is_authenticated):
+            return Subscription.objects.filter(user=self.context['request'].user,
+                                               author=obj).exists()
+
     def get_recipes(self, obj):
         recipes = obj.recipes.all()
-        serializers = RecipePartialSerializer(recipes, many=True, context={'request': request}).data
+        serializers = RecipePartialSerializer(recipes, many=True, context={'request': self.context.get('request')})
         return serializers.data
 
     def get_recipes_count(self, obj):
@@ -205,17 +222,6 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     #         )
     #     return value
 
-    # def validate(self, data):
-    #     print("QQQQQ")
-    #     request = self.context.get('request')
-    #     if request.user == data['author']:
-    #         raise serializers.ValidationError('Нельзя подписаться на самого себя.')
-    #     author = self.instance
-    #     user = self.context.get('request').user
-    #     print("QQQQQ", author, user)
-    #     if Subscription.objects.filter(author=author, user=user).exists():
-    #         raise serializers.ValidationError('Вы уже подписаны.')
-    #     return data
 
     # def to_representation(self, instance):
     #     print('4[][][]')

@@ -3,7 +3,6 @@ from colorfield.fields import ColorField
 
 from django.db import models
 
-
 from users.models import User
 
 
@@ -174,7 +173,7 @@ class Favorites(models.Model):
 
 
 class Subscription(models.Model):
-    follower = models.ForeignKey(
+    user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='following',
@@ -200,7 +199,7 @@ class Subscription(models.Model):
         verbose_name_plural = 'Избранные авторы'
         constraints = [
             models.UniqueConstraint(
-                fields=['follower', 'author'], name='unique_subscribe'
+                fields=['user', 'author'], name='unique_subscribe'
             ),
             # models.CheckConstraint(
             #     name='prevent_self_follow',

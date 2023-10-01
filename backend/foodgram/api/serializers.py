@@ -150,8 +150,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return serializer.data
 
 
-class SubscriptionSerializer(serializers.ModelSerializer):
-
+class UserSubscriptionSerializer(serializers.ModelSerializer):
     is_subcribed = serializers.SerializerMethodField()
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
@@ -160,76 +159,68 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         model = User
         fields = ('email', 'id', 'username', 'first_name',
                   'last_name', 'is_subcribed', 'recipes', 'recipes_count')
-        read_only_fields = ('email', 'username', 'first_name',
-                  'last_name', 'is_subcribed', 'recipes', 'recipes_count')
-
-    def get_is_subscribed(self, obj: User) -> bool:
-        user = self.context.get("request").user
-        if user.is_anonymous or (user == obj):
-            return False
-        return user.subscriptions.filter(author=obj).exists()
 
     def get_recipes(self, obj):
-        request = self.context.get('request')
-        recipes_limit = None
-        if request:
-            recipes_limit = request.query_params.get('recipes_limit')
-            recipes = obj.recipes.all()
-        if recipes_limit:
-            recipes = obj.recipes.all()[:int(recipes_limit)]
-        return RecipePartialSerializer(recipes, many=True, context={'request': request}).data
+        recipes = obj.recipes.all()
+        serializers = RecipePartialSerializer(recipes, many=True, context={'request': request}).data
+        return serializers.data
 
     def get_recipes_count(self, obj):
-        return obj.recipes.count()
+        recipes = obj.recipes.all()
+        recipes_num = recipes.count()
+        return recipes_num
 
 
-class SubscribeUserSerializer(serializers.ModelSerializer):
-    print('2[][][]')
-    follower = serializers.SlugRelatedField(
+class SubscriptionSerializer(serializers.ModelSerializer):
+    """Сериализатор для подписки и отписки от автора."""
+    print("444")
+    # author = UserSubscriptionSerializer(many=True, read_only=True)
+
+    user = serializers.SlugRelatedField(
         queryset=User.objects.all(),
         slug_field='username',
-        default=serializers.CurrentUserDefault()
+        # default=serializers.CurrentUserDefault()
     )
     author = serializers.SlugRelatedField(
         queryset=User.objects.all(),
         slug_field='username',
     )
+
     class Meta:
         model = Subscription
-        fields = '__all__'
-        read_only_fields = ('follower', 'author')
+        fields = ('__all__')
         validators = [
             serializers.UniqueTogetherValidator(
                 queryset=Subscription.objects.all(),
-                fields=['follower', 'author'],
-                message='Вы уже подписаны'
+                fields=['user', 'author'],
+                message='Вы уже подписаны на этого автора.'
             )
         ]
 
-    # def validate(self, data):
-    #     print('3[][][]', data)
-    #     request = self.context['request']
-    #     print('5[][][]', request.user)
-    #
-    #     if request.user == data['author']:
+    # def validate_author(self, value):
+    #     user = self.context.get('request').user.username
+    #     if str(value) == str(user):
     #         raise serializers.ValidationError(
-    #             'Нельзя подписаться на самого себя.')
+    #             'Нельзя подписаться на самого себя'
+    #         )
+    #     return value
+
+    # def validate(self, data):
+    #     print("QQQQQ")
+    #     request = self.context.get('request')
+    #     if request.user == data['author']:
+    #         raise serializers.ValidationError('Нельзя подписаться на самого себя.')
+    #     author = self.instance
+    #     user = self.context.get('request').user
+    #     print("QQQQQ", author, user)
+    #     if Subscription.objects.filter(author=author, user=user).exists():
+    #         raise serializers.ValidationError('Вы уже подписаны.')
     #     return data
 
-    def validate(self, value):
-        print('3[][][]', value)
-        user_value = self.context.get('request').user.username
-        print('5[][][]', user_value)
-        if str(value) == str(user_value):
-            raise serializers.ValidationError(
-                'Нельзя подписаться на самого себя'
-            )
-        return value
-
-    def to_representation(self, instance):
-        print('4[][][]')
-        request = self.context.get('request')
-        print("1<><><>", request)
-        return SubscriptionSerializer(
-            instance.author, context={'request': request}
-        ).data
+    # def to_representation(self, instance):
+    #     print('4[][][]')
+    #     request = self.context.get('request')
+    #     print("1<><><>", request)
+    #     return UserSubscriptionSerializer(
+    #         instance.author, context={'request': request}
+    #     ).data

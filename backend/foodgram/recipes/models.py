@@ -62,9 +62,12 @@ class Recipe(models.Model):
         max_length=200,
         verbose_name='Название блюда',
     )
-    # image = models.ImageField(
-    #     verbose_name='Фото блюда',
-    # )
+    image = models.ImageField(
+        upload_to='recipe/images/',
+        null=True,
+        default=None,
+        verbose_name='Изображение блюда',
+    )
     text = models.TextField(
         verbose_name='Описание рецепта',
     )
@@ -148,14 +151,12 @@ class RecipeIngredient(models.Model):
 class Favorites(models.Model):
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
-        related_name='favorites_user',
+        on_delete=models.CASCADE, related_name='favorites_user',
         verbose_name='Пользователь'
     )
     recipe = models.ForeignKey(
         Recipe,
-        on_delete=models.CASCADE,
-        related_name='favorites_recipe',
+        on_delete=models.CASCADE, related_name='favorites_recipe',
         verbose_name='Избранный рецепт'
     )
 
@@ -165,8 +166,7 @@ class Favorites(models.Model):
         ordering = ['user']
         constraints = [
             models.UniqueConstraint(fields=['user', 'recipe'],
-                                    name='unique_favorites')
-        ]
+                                    name='unique_favorites')]
 
     def __str__(self):
         return f'{self.user} - {self.recipe}'
@@ -188,11 +188,6 @@ class Subscription(models.Model):
         verbose_name='Избранный автор',
         help_text='Избранный автор',
     )
-    # date_added = DateTimeField(
-    #     verbose_name="Дата создания подписки",
-    #     auto_now_add=True,
-    #     editable=False,
-    # )
 
     class Meta:
         verbose_name = 'Избранный автор'
@@ -201,10 +196,6 @@ class Subscription(models.Model):
             models.UniqueConstraint(
                 fields=['user', 'author'], name='unique_subscribe'
             ),
-            # models.CheckConstraint(
-            #     name='prevent_self_follow',
-            #     check=~models.Q(user=models.F('author')),
-            # ),
         ]
 
     def __str__(self):
@@ -213,18 +204,12 @@ class Subscription(models.Model):
 
 class ShoppingCart(models.Model):
     user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='shopping_list',
-        verbose_name='Пользователь',
-        help_text='Пользователь',
+        User, on_delete=models.CASCADE, related_name='shopping_user',
+        verbose_name='Пользователь', help_text='Пользователь',
     )
     recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='shopping_cart',
-        verbose_name='Рецепт в списке покупок',
-        help_text='Рецепт в списке покупок',
+        Recipe, on_delete=models.CASCADE, related_name='shopping_cart',
+        verbose_name='Рецепт в списке покупок', help_text='Рецепт в списке покупок',
     )
 
     class Meta:

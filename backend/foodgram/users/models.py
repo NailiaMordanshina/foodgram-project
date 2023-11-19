@@ -20,7 +20,7 @@ class User(AbstractUser):
         unique=True,
         max_length=150,
         verbose_name='Электронная почта')
-    is_subcribed = models.BooleanField(
+    is_subscribed = models.BooleanField(
         default=False,
         verbose_name='Подписка на автора')
 
@@ -28,7 +28,6 @@ class User(AbstractUser):
         ordering = ['username']
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-
 
     def __str__(self):
         return self.username

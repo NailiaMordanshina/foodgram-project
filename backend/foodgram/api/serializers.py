@@ -12,7 +12,7 @@ from recipes.models import Tag, Recipe, RecipeIngredient, Ingredient, Subscripti
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    is_subscribed = serializers.SerializerMethodField()
+    # is_subscribed = serializers.SerializerMethodField(read_only=True)
     class Meta:
         model = User
         fields = ('email',
@@ -84,7 +84,7 @@ class Base64ImageField(serializers.ImageField):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True)
+    tags = TagSerializer(many=True, read_only=True)
     ingredients = RecipeIngredientSerializer(many=True, source='recipe_ingredients')
     author = UserSerializer(read_only=True)
     is_favorited = SerializerMethodField()
@@ -159,6 +159,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         instance.image = validated_data.get('image', instance.image)
         ingredients = validated_data.pop('ingredients')
         instance = super().update(instance, validated_data)
+
 
         for ingredient_data in ingredients:
             RecipeIngredient(

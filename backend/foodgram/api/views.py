@@ -1,13 +1,18 @@
 from django.shortcuts import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+
 from django.db.models import Sum
+from djoser.views import TokenCreateView
 
 from djoser.serializers import SetPasswordSerializer
 from djoser.views import UserViewSet
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import permissions, generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, viewsets, filters
@@ -28,16 +33,29 @@ def index(request):
     return HttpResponse('index')
 
 
+class CustomTokenCreateView(TokenCreateView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        response.status_code = 200
+        return response
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    pagination_class = LimitOffsetPagination
+
 
     @action(methods=['get'], permission_classes=[IsAuthenticated],
             url_path='me', detail=False)
     def me(self, request):
-        user = request.user
+        user = self.request.user
+        # if request.method == 'GET':
         serializer = self.get_serializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+        # serializer = self.get_serializer(user, data=request.data, partial=True)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save(role=user.role, partial=True)
+        # return Response(serializer.data, status=status.HTTP_201_OK)
 
 
     @action(detail=False,
@@ -97,22 +115,33 @@ class UserViewSet(viewsets.ModelViewSet):
         return self.get_paginated_response(serializer.data)
 
 
-class TagViewSet(ModelViewSet):
+class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
     pagination_class = None
 
 
-class IngredientViewSet(ModelViewSet):
+class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = {'name': ['exact', 'startswith']}
     pagination_class = None
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        print('Original queryset:', queryset)
+        return queryset
 
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    pagination_class = LimitOffsetPagination
+
     # pagination_class = LimitPagination
 
     filter_backends = [DjangoFilterBackend]

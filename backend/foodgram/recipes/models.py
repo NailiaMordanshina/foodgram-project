@@ -1,6 +1,6 @@
 from django.core.validators import MaxValueValidator, MinValueValidator
 from colorfield.fields import ColorField
-
+from django.utils import timezone
 from django.db import models
 
 from users.models import User
@@ -62,14 +62,17 @@ class Recipe(models.Model):
         max_length=200,
         verbose_name='Название блюда',
     )
-    # image = models.ImageField(
-    #     verbose_name='Фото блюда',
-    # )
+    image = models.ImageField(
+        upload_to='recipe/images/',
+        null=True,
+        default=None,
+        verbose_name='Изображение блюда',
+    )
     text = models.TextField(
         verbose_name='Описание рецепта',
     )
     ingredients = models.ManyToManyField(
-        'Ingredient',
+        Ingredient,
         through='RecipeIngredient',
         through_fields=('recipe', 'ingredient'),
         related_name='recipes',
@@ -93,9 +96,9 @@ class Recipe(models.Model):
         default=1,
         verbose_name='Время приготовления',
     )
-    # pub_date = models.DateTimeField(
-    #     'Дата публикации', auto_now_add=True
-    # )
+    pub_date = models.DateTimeField(
+        'Дата публикации', auto_now_add=True
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -119,15 +122,15 @@ class RecipeIngredient(models.Model):
         verbose_name='Рецепт',
     )
     amount = models.PositiveIntegerField(
-        # validators=[
-        #     MinValueValidator(
-        #         1, 'Количество ингредиентов не может быть меньше 1!'
-        #     ),
-        #     MaxValueValidator(
-        #         1000, 'Количество ингредиентов не может быть больше 1000!'
-        #     )
-        # ],
-        # default=1,
+        validators=[
+            MinValueValidator(
+                1, 'Количество ингредиентов не может быть меньше 1!'
+            ),
+            MaxValueValidator(
+                1000, 'Количество ингредиентов не может быть больше 1000!'
+            )
+        ],
+        default=1,
         verbose_name='Количество',
     )
 
@@ -145,9 +148,78 @@ class RecipeIngredient(models.Model):
         return f'{self.ingredient} {self.recipe}'
 
 
-class RecipeTag(models.Model):
-    tags = models.ForeignKey(Tag, on_delete=models.CASCADE)
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+class Favorites(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE, related_name='favorites_user',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE, related_name='favorites_recipe',
+        verbose_name='Избранный рецепт'
+    )
+
+    class Meta:
+        verbose_name = 'Избранное'
+        verbose_name_plural = 'Избранные'
+        ordering = ['user']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'recipe'],
+                                    name='unique_favorites')]
 
     def __str__(self):
-        return f'{self.tags} {self.recipe}'
+        return f'{self.user} - {self.recipe}'
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='following',
+        verbose_name='Пользователь',
+        help_text='Пользователь',
+        default=None
+    )
+    author = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='followers',
+        verbose_name='Избранный автор',
+        help_text='Избранный автор',
+    )
+
+    class Meta:
+        verbose_name = 'Избранный автор'
+        verbose_name_plural = 'Избранные авторы'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'author'], name='unique_subscribe'
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.user} {self.author}'
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='shopping_user',
+        verbose_name='Пользователь', help_text='Пользователь',
+    )
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, related_name='shopping_cart',
+        verbose_name='Рецепт в списке покупок', help_text='Рецепт в списке покупок',
+    )
+
+    class Meta:
+        verbose_name = 'Список покупок'
+        verbose_name_plural = 'Списки покупок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'], name='unique_shopping_cart'
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} {self.recipe}'

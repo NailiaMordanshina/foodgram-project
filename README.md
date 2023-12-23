@@ -13,5 +13,7 @@ python manage.py makemigrations
 python manage.py migrate
 python3 manage.py runserver
 python3 manage.py createsuperuser
- docker-compose up --build
+docker-compose up --build
+docker-compose up
 python manage.py show_urls
+pip install django-filter

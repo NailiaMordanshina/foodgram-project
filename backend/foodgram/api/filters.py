@@ -1,6 +1,8 @@
 import django_filters
 
 from django_filters.rest_framework import FilterSet, filters
+from django.core.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from recipes.models import Recipe, Tag, User, Ingredient
 
@@ -25,16 +27,16 @@ class RecipeFilter(FilterSet):
 
     def get_is_favorited(self, queryset, name, value):
         user = self.request.user
+        if self.request.user.is_anonymous:
+            return queryset.none()
         if value:
             return queryset.filter(favorites_recipe__user=user)
         return queryset
 
     def get_is_in_shopping_cart(self, queryset, name, value):
         user = self.request.user
-        print('7777', user)
+        if self.request.user.is_anonymous:
+            return queryset.none()
         if value:
-            print('888', queryset.filter)
-
             return queryset.filter(shopping_cart__user=user)
-
         return queryset

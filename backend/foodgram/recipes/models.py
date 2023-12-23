@@ -122,15 +122,15 @@ class RecipeIngredient(models.Model):
         verbose_name='Рецепт',
     )
     amount = models.PositiveIntegerField(
-        # validators=[
-        #     MinValueValidator(
-        #         1, 'Количество ингредиентов не может быть меньше 1!'
-        #     ),
-        #     MaxValueValidator(
-        #         1000, 'Количество ингредиентов не может быть больше 1000!'
-        #     )
-        # ],
-        # default=1,
+        validators=[
+            MinValueValidator(
+                1, 'Количество ингредиентов не может быть меньше 1!'
+            ),
+            MaxValueValidator(
+                1000, 'Количество ингредиентов не может быть больше 1000!'
+            )
+        ],
+        default=1,
         verbose_name='Количество',
     )
 

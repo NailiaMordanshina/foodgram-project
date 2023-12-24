@@ -14,8 +14,8 @@ class Tag(models.Model):
     )
     color = ColorField(
         unique=True,
-        format='hex',
-        default='#FF0000',
+        # format='hex',
+        # default='#FF0000',
         verbose_name='Цветовой код',
     )
     slug = models.SlugField(

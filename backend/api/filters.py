@@ -1,8 +1,5 @@
 import django_filters
-
 from django_filters.rest_framework import FilterSet, filters
-from django.core.exceptions import PermissionDenied
-from rest_framework.response import Response
 
 from recipes.models import Recipe, Tag, User, Ingredient
 
@@ -17,13 +14,16 @@ class IngredientFilter(django_filters.FilterSet):
 
 class RecipeFilter(FilterSet):
     is_favorited = filters.BooleanFilter(method='get_is_favorited')
-    is_in_shopping_cart = filters.BooleanFilter(method='get_is_in_shopping_cart')
+    is_in_shopping_cart = filters.BooleanFilter(
+        method='get_is_in_shopping_cart'
+    )
     tags = filters.AllValuesMultipleFilter(field_name='tags__slug')
     author = filters.ModelChoiceFilter(queryset=User.objects.all())
 
     class Meta:
         model = Recipe
-        fields = ('is_favorited', 'tags', 'author', 'is_in_shopping_cart')
+        fields = ('is_favorited', 'tags', 'author',
+                  'is_in_shopping_cart')
 
     def get_is_favorited(self, queryset, name, value):
         user = self.request.user

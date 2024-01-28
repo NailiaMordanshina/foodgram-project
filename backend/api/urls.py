@@ -13,7 +13,9 @@ router.register('ingredients', IngredientViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('auth/token/create/', CustomTokenCreateView.as_view(), name='token_create'),
+    path('auth/token/create/',
+         CustomTokenCreateView.as_view(),
+         name='token_create'),
     path('auth/', include('djoser.urls.authtoken')),
     path('index', index)
 ]

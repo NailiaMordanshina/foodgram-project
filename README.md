@@ -119,13 +119,13 @@ sudo docker exec -it <container_id> python manage.py createsuperuser
 
 ## Сведения о текущей публикации проекта
 
-- Сайт: http://localhost/
-- Админка: http://127.0.0.1:8000/admin/
+- Сайт: https://fg.hopto.org/
+- Админка: https://fg.hopto.org/admin/
 - Документация по API: http://localhost/api/docs/redoc.html
 
 ## Вход для ревью:
 - Логин: **admin@admin.com**
-- Пароль: **admin**
+- Пароль: **admin11111**
 
 ## Об Авторе
 Наиля Морданшина

@@ -7,7 +7,7 @@ from djoser.views import TokenCreateView
 
 from djoser.serializers import SetPasswordSerializer
 from djoser.views import UserViewSet
-from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.pagination import LimitOffsetPagination, PageNumberPagination
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import permissions, generics
 
@@ -27,20 +27,25 @@ from api.serializers import UserSerializer, TagSerializer, RecipeSerializer,\
     UserSerializer, UserMeSerializer
 
 from users.models import User
+from api.permissions import IsOwnerOrReadOnly
 
 
 def index(request):
     return HttpResponse('index')
 
 
-class IsOwnerOrReadOnly(BasePermission):
-    """
-    Пользователи могут редактировать свои собственные объекты, но не могут редактировать чужие.
-    """
-    def has_object_permission(self, request, view, obj):
-        if request.method in permissions.SAFE_METHODS:
-            return True
-        return obj.author == request.user
+# class IsOwnerOrReadOnly(BasePermission):
+#     def has_permission(self, request, view):
+#         print(permissions.SAFE_METHODS)
+#         return (request.method in permissions.SAFE_METHODS
+#                 or request.user.is_authenticated)
+#     """
+#     Пользователи могут редактировать свои собственные объекты, но не могут редактировать чужие.
+#     """
+#     def has_object_permission(self, request, view, obj):
+#         if request.method in permissions.SAFE_METHODS:
+#             return True
+#         return obj.author == request.user
 
 
 class CustomTokenCreateView(TokenCreateView):
@@ -54,6 +59,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = LimitOffsetPagination
+    permission_classes = (IsOwnerOrReadOnly, )
 
     @action(methods=['get'], permission_classes=[IsAuthenticated],
             url_path='me', detail=False)
@@ -146,7 +152,8 @@ class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeSerializer
     permission_classes = (permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
-    pagination_class = LimitOffsetPagination
+    # pagination_class = LimitOffsetPagination
+    pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend]
     filterset_class = RecipeFilter
 
